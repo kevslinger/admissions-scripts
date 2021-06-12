@@ -1,2 +1,6 @@
 chromedriver
 venv/
+client_secret.json
+.env
+.idea
+__pycache__/
