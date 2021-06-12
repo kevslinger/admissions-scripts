@@ -1,11 +1,17 @@
 from selenium import webdriver
+
+import constants
 import google_utils
 import gspread
 import get_redditmetis_stats
 import time
 import os
+import string
+import requests
 from dotenv import load_dotenv
 load_dotenv()
+
+
 
 # TODO: MY NEW PLAN
 # OKAY SO
@@ -25,6 +31,10 @@ load_dotenv()
 #           Added?
 #           https://www.reddit.com/r/ravenclaw/about/contributors/
 
+# TODO: original plan worked
+# TODO: Get Script on Heroku on 1hr-ish schedule
+# TODO:
+
 
 def main():
     # Get the sheet key from ENV (requires setting env or having a .env)
@@ -35,26 +45,27 @@ def main():
     sheet = gspread_client.open_by_key(SHEET_KEY)
     # TODO: kev-testing tab is for testing.
     # Get the specific spreadsheet tab
-    admissions_tab = sheet.worksheet('kev-testing')
+    admissions_tab = sheet.worksheet(constants.ADMISSIONS_TAB_NAME)
     # Get the Chrome Driver
     driver = webdriver.Chrome("./chromedriver")
-    # URL for redditmetis
-    redditmetis_url = "https://redditmetis.com/user/"
     # Call the function to look through each of the new rows on the sheet
-    update_sheet(driver, admissions_tab, redditmetis_url)
+    start_col = "G"
+    end_col = "W"
+    update_sheet(driver, admissions_tab, start_col, end_col)
 
 
-def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, base_website: str):
+def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, start_col: str, end_col: str):
     # Loop through each row in the sheet
     for idx, row in enumerate(sheet_tab.get_all_values()):
-        # GET RID OF 2-ROW HEADER
-        if idx < 2:
+        # GET RID OF 1-ROW HEADER
+        if idx < 1:
             continue
+        username = row[1]
         # print(row)
         # Get the URL to open up with chrome
-        SEARCH = f"{base_website}{row[1]}"
-        print(SEARCH)
-        driver.get(SEARCH)
+        user_url = f"{constants.REDDITMETIS_URL}{username}"
+        print(user_url)
+        driver.get(user_url)
         # Wait 5 seconds for the page to load
         time.sleep(5)
         # Pulls in all the info we need about the reddit user
@@ -63,19 +74,42 @@ def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, base_website: 
         # If the page hasn't finished loading, we wait 10 seconds, then 15 seconds, then 30 seconds.
         # If the page still hasn't loaded by then (50 total seconds), we'll assume there was some error
         fails = 3
+
+        comment_karma = -1
         while not results and fails > 0:
             print(f"Failed! {fails} fails remaining")
             results = get_redditmetis_stats.get_stats(driver)
             time.sleep(30 / fails)
             fails -= 1
+            if comment_karma < 0:
+                user_info = requests.get(f"{constants.REDDIT_URL}user/{username}/about.json")
+                if user_info.status_code == requests.codes.OK:
+                    try:
+                        comment_karma = user_info.json()['data']['comment_karma']
+                    except KeyError:
+                        comment_karma = -1
         # Could not get results after waiting for so long. Assume user causes an error on redditmetis
         if not results:
-            print(f"User {row[1]} cannot be found on {base_website}!")
-            # Skip over updating the sheet
-            continue
+            print(f"User {row[1]} cannot be found on {constants.REDDITMETIS_URL}{username}!")
+            if comment_karma >= 0:
+                results = [comment_karma]
+            else:
+                results = ['error']
+            # Add filler to the sheet
+            # TODO: I still want their comment karma even if they aren't metis-able
+            #user_info_response = requests.get(f"{constants.REDDIT_URL}user/{username}/about.json")
+            #if user_info_response.status_code == requests.codes.OK:
+            #    results = [user_info_response.json()['data']['comment_karma']]
+            #else:
+            #    results = ['DNE']
+            # TODO: We do -2 because we then add the reddit and redditmetis links
+            results += ['?'] * (string.ascii_uppercase.index(end_col) - string.ascii_uppercase.index(start_col) - 2)
         # print('\n'.join(results))
+        # Add reddit account overview and redditmetis account overview links
+        results.append(f"{constants.REDDIT_URL}user/{username}")
+        results.append(user_url)
         # Update the appropriate row with the info
-        sheet_tab.update(f'G{idx + 1}:R{idx + 1}', [results], raw=False)
+        sheet_tab.update(f'{start_col}{idx + 1}:{end_col}{idx + 1}', [results], raw=False)
 
 
 if __name__ == '__main__':
