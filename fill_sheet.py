@@ -43,7 +43,6 @@ def main():
     gspread_client = google_utils.create_gspread_client()
     # Open the Google Sheet
     sheet = gspread_client.open_by_key(SHEET_KEY)
-    # TODO: kev-testing tab is for testing.
     # Get the specific spreadsheet tab
     admissions_tab = sheet.worksheet(constants.ADMISSIONS_TAB_NAME)
     # Get the Chrome Driver
@@ -58,8 +57,11 @@ def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, start_col: str
     # Loop through each row in the sheet
     for idx, row in enumerate(sheet_tab.get_all_values()):
         # GET RID OF 1-ROW HEADER
-        if idx < 1:
+        # TODO: Go from the back, go until we get something in the timestamp column but nothing in the columns we need to fill
+        if idx < 700:
             continue
+        if idx > 800:
+            break
         username = row[1]
         # print(row)
         # Get the URL to open up with chrome
@@ -96,19 +98,14 @@ def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, start_col: str
             else:
                 results = ['error']
             # Add filler to the sheet
-            # TODO: I still want their comment karma even if they aren't metis-able
-            #user_info_response = requests.get(f"{constants.REDDIT_URL}user/{username}/about.json")
-            #if user_info_response.status_code == requests.codes.OK:
-            #    results = [user_info_response.json()['data']['comment_karma']]
-            #else:
-            #    results = ['DNE']
             # TODO: We do -2 because we then add the reddit and redditmetis links
             results += ['?'] * (string.ascii_uppercase.index(end_col) - string.ascii_uppercase.index(start_col) - 2)
-        # print('\n'.join(results))
         # Add reddit account overview and redditmetis account overview links
         results.append(f"{constants.REDDIT_URL}user/{username}")
         results.append(user_url)
         # Update the appropriate row with the info
+        # Need to do idx + 1 because google sheets are 1-indexed while python is 0-indexed
+        # raw=False allows us to do =HYPERLINK which we used for Most Downvoted, etc.
         sheet_tab.update(f'{start_col}{idx + 1}:{end_col}{idx + 1}', [results], raw=False)
 
 
