@@ -55,13 +55,24 @@ def main():
 
 def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, start_col: str, end_col: str):
     # Loop through each row in the sheet
-    for idx, row in enumerate(sheet_tab.get_all_values()):
+    #for idx, row in enumerate(sheet_tab.get_all_values()):
+    for idx, row in reversed(list(enumerate(sheet_tab.get_all_values()))):
         # GET RID OF 1-ROW HEADER
         # TODO: Go from the back, go until we get something in the timestamp column but nothing in the columns we need to fill
-        if idx < 700:
+        # TODO: is this the right way to check
+        # Check to see if the TIMESTAMP or USERNAME columns are empty.
+        if row[0] == "" or row[1] == "":
             continue
-        if idx > 800:
+        # Both Timestamp and username are empty, check if the python columns are empty as well
+        # TODO: This is kinda hacky
+        # If two rows are full, we've already processed it, so we're done.
+        elif row[6] != "" and row[7] != "":
             break
+        # At this point, we have a timestamp and username, but have not processed the entry
+        #if idx < 1700:
+        #    continue
+        #if idx > 1800:
+        #    break
         username = row[1]
         # print(row)
         # Get the URL to open up with chrome
@@ -96,7 +107,7 @@ def update_sheet(driver: webdriver, sheet_tab: gspread.Worksheet, start_col: str
             if comment_karma >= 0:
                 results = [comment_karma]
             else:
-                results = ['error']
+                results = ['?']
             # Add filler to the sheet
             # TODO: We do -2 because we then add the reddit and redditmetis links
             results += ['?'] * (string.ascii_uppercase.index(end_col) - string.ascii_uppercase.index(start_col) - 2)
