@@ -21,8 +21,14 @@ def main():
     sheet = gspread_client.open_by_key(SHEET_KEY)
     # Get the specific spreadsheet tab
     admissions_tab = sheet.worksheet(constants.ADMISSIONS_TAB_NAME)
+    # Set the options for our chrome driver
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.binary_location = constants.GOOGLE_CHROME_PATH
     # Get the Chrome Driver
-    driver = webdriver.Chrome("./chromedriver")
+    driver = webdriver.Chrome(executable_path=constants.CHROMEDRIVER_PATH,
+                              options=chrome_options)
     # Call the function to look through each of the new rows on the sheet
     start_col = "G"
     end_col = "W"
