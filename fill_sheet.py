@@ -27,8 +27,9 @@ def main():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.binary_location = constants.GOOGLE_CHROME_PATH
     # Get the Chrome Driver
-    driver = webdriver.Chrome(executable_path=constants.CHROMEDRIVER_PATH,
-                              options=chrome_options)
+    #driver = webdriver.Chrome(executable_path=constants.CHROMEDRIVER_PATH,
+    #                          options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     # Call the function to look through each of the new rows on the sheet
     start_col = "G"
     end_col = "W"
