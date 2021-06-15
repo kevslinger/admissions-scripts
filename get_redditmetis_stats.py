@@ -13,9 +13,13 @@ def get_stats(driver):
         stats.append(f"{comment_karma}")
         # Comment Count
         comment_count = driver.find_element_by_xpath('/html/body/div[1]/div/div[2]/div/div/div[2]/div[4]/div/div[2]/div[1]/div/div[1]/div/div[1]/div/p').text
+        if 'k' in comment_count:
+            comment_count = float(comment_count[:-1]) * 1000
         stats.append(f"{comment_count}")
         # Avg Karma per comment
         avg_comment_karma = driver.find_element_by_xpath('/html/body/div[1]/div/div[2]/div/div/div[2]/div[4]/div/div[2]/div[1]/div/div[4]/div/div[1]/div/p').text
+        if 'k' in avg_comment_karma:
+            avg_comment_karma = float(avg_comment_karma[:-1]) * 1000
         stats.append(f"{avg_comment_karma}")
         # Wholesomeness
         wholesomeness = driver.find_element_by_xpath('//*[@id="sentiment-right"]').text
