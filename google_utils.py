@@ -23,3 +23,17 @@ def create_gspread_client() -> gspread.Client:
             json.dump(json_creds, f)
     creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scopes)
     return gspread.authorize(creds)
+
+
+def get_next_row(sheet: gspread.Worksheet) -> int:
+    """Get the next empty row index
+    :param sheet: (gspread.Worksheet) the sheet
+    :return idx: the index"""
+
+    for idx, row in reversed(list(enumerate(sheet.get_all_values()))):
+        print(row)
+        if row[0] == "":
+            continue
+        else:
+            break
+    return idx + 2
