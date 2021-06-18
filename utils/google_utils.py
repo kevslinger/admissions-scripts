@@ -31,7 +31,6 @@ def get_next_row(sheet: gspread.Worksheet) -> int:
     :return idx: the index"""
 
     for idx, row in reversed(list(enumerate(sheet.get_all_values()))):
-        print(row)
         if row[0] == "":
             continue
         else:

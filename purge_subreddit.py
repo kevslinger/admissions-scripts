@@ -156,6 +156,7 @@ class SubredditAnalyzer:
 
 if __name__ == '__main__':
     analyzer = SubredditAnalyzer()
+    print(analyzer.get_random_facts())
     analyzer.run_threads(num_threads=12)
 
 # print(f"According to praw, I count {num_contributors} members of {sub_name}.")

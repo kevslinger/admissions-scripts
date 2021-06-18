@@ -1,7 +1,7 @@
 from selenium import webdriver
-
+from selenium.common.exceptions import TimeoutException
 import constants
-from utils import google_utils, redditmetis_utils
+from utils import google_utils, praw_utils, reddit_utils, redditmetis_utils
 import gspread
 import time
 import os
@@ -44,6 +44,9 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
     :param start_col: The first column to store values in
     :param end_col: The last column to store values in
     """
+    # Only needed if redditmetis is down
+    reddit_client = None
+    is_redditmetis_down = False
     # STEP 1: FIND THE ROW TO START AT
     # STEP 2: START PROCESSING FROM THAT ROW ONWARDS
     # Loop through each row in the sheet from the back (we only care about new entries)
@@ -94,35 +97,48 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         username = row[1]
         # Get the URL to open up with chrome
         user_url = f"{constants.REDDITMETIS_URL}{username}"
-        driver.get(user_url)
-        # Wait 5 seconds for the page to load TODO: different time?
-        time.sleep(5)
-        # Pulls in all the info we need about the reddit user
-        results = redditmetis_utils.get_stats(driver)
-        # This fails mechanism will on average let us speed up how long it takes for each person
-        # If the page hasn't finished loading, we wait 10 seconds, then 15 seconds, then 30 seconds.
-        # If the page still hasn't loaded by then (50 total seconds), we'll assume there was some error
-        fails = 3
-
         comment_karma = -1
-        while not results and fails > 0:
-            print(f"Failed! {fails} fails remaining")
-            results = redditmetis_utils.get_stats(driver)
-            time.sleep(30 / fails)
-            fails -= 1
-            # Reddit hits you with a "429: Too many messages" error seemingly often.
-            # I threw this block in here because I want it to wait, too, so makes sense
-            # To do the same waiting as opposed to re-configuring a fail/wait block.
-            if comment_karma < 0:
-                # If we can't find their results, look them up on the static reddit user about page.
-                user_info = requests.get(f"{constants.REDDIT_URL}user/{username}/about.json")
-                if user_info.status_code == requests.codes.OK:
-                    try:
-                        # If the user does not exist or is banned or something, they'll still return a 200 but
-                        # Won't have the comment_karma field.
-                        comment_karma = user_info.json()['data']['comment_karma']
-                    except KeyError:
-                        pass
+        if not is_redditmetis_down:
+            try:
+                driver.get(user_url)
+
+                # Wait 5 seconds for the page to load TODO: different time?
+                time.sleep(5)
+                # Pulls in all the info we need about the reddit user
+                results = redditmetis_utils.get_stats(driver)
+                # This fails mechanism will on average let us speed up how long it takes for each person
+                # If the page hasn't finished loading, we wait 10 seconds, then 15 seconds, then 30 seconds.
+                # If the page still hasn't loaded by then (50 total seconds), we'll assume there was some error
+                fails = 3
+
+                while not results and fails > 0:
+                    print(f"Failed! {fails} fails remaining")
+                    results = redditmetis_utils.get_stats(driver)
+                    time.sleep(30 / fails)
+                    fails -= 1
+                    # Reddit hits you with a "429: Too many messages" error seemingly often.
+                    # I threw this block in here because I want it to wait, too, so makes sense
+                    # To do the same waiting as opposed to re-configuring a fail/wait block.
+                    if comment_karma < 0:
+                        # If we can't find their results, look them up on the static reddit user about page.
+                        user_info = requests.get(f"{constants.REDDIT_URL}user/{username}/about.json")
+                        if user_info.status_code == requests.codes.OK:
+                            try:
+                                # If the user does not exist or is banned or something, they'll still return a 200 but
+                                # Won't have the comment_karma field.
+                                comment_karma = user_info.json()['data']['comment_karma']
+                            except KeyError:
+                                pass
+            # Redditmetis is down, need to do my own praw analysis
+            except TimeoutException:
+                is_redditmetis_down = True
+                # Only need to instantiate this once
+                reddit_client = reddit_utils.create_reddit_client()
+
+        # If redditmetis goes down, we'll do our own praw analysis
+        if is_redditmetis_down:
+            results = praw_utils.get_user_statistics(reddit_client, username)
+
         # Could not get results after waiting for so long. Assume user causes an error on redditmetis
         # TODO: Maybe we should wait even longer? Just slows down the code though.
         if not results:
