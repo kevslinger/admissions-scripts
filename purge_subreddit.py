@@ -11,11 +11,11 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 OUTPUT_DIR = "output_files"
-MAIN_TEXT_FILE = "ravenclaw_contributors4.txt"
-SHADOWBANNED = "ravenclaw_shadowbanned4.txt"
-UNVERIFIED = "unverified4.txt"
-UNSUBSCRIBED = "unsubscribed4.txt"
-RECENCY_CSV = "ravenclaw_recency4.csv"
+MAIN_TEXT_FILE = "ravenclaw_contributors.txt"
+SHADOWBANNED = "ravenclaw_shadowbanned.txt"
+UNVERIFIED = "unverified.txt"
+UNSUBSCRIBED = "unsubscribed.txt"
+RECENCY_CSV = "ravenclaw_recency.csv"
 
 
 class SubredditAnalyzer:
@@ -84,17 +84,24 @@ class SubredditAnalyzer:
                       f"contributors processed in {time.time() - checkpoint_time} seconds.")
                 checkpoint_time = time.time()
             contributors.append(contributor.name)
+            with self.lock:
+                with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
+                    f.write(f"{contributor.name}\n")
+            # TODO: We don't do anything with unverifieds or unsubscribeds anymore
             try:
                 if contributor.verified is False:
                     num_unverified += 1
                     unverifieds.append(contributor.name)
                 if contributor.has_subscribed is False:
                     num_unsubscribed += 1
-                    unverifieds.append(contributor.name)
+                    unsubscribeds.append(contributor.name)
             except AttributeError:
                 #print(f"{contributor.name} has been suspended or shadowbanned")
                 num_suspended_or_banned += 1
                 shadowbanneds.append(contributor.name)
+                with self.lock:
+                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
+                        f.write(f"{contributor.name}")
                 continue
             except prawcore.exceptions.NotFound:
                 print(f"Is {contributor} suspended? {contributor.is_suspended}. They have definitely been banned or some shit")
@@ -104,47 +111,56 @@ class SubredditAnalyzer:
             for most_recent_post in contributor.new(limit=1):
                 time_created = datetime.datetime.utcfromtimestamp(int(most_recent_post.created_utc))
                 if time_created + datetime.timedelta(days=366*5) < datetime.datetime.now():
+                    delta_years = 5
                     years_since_last_post[5].append(contributor)
                     # print(f"{contributor} has not posted anything publicly in the last 5 years.")
                 elif time_created + datetime.timedelta(days=366 * 4) < datetime.datetime.now():
+                    delta_years = 4
                     years_since_last_post[4].append(contributor)
                     # print(f"{contributor} has not posted anything publicly in the last 4 years.")
                 elif time_created + datetime.timedelta(days=366 * 3) < datetime.datetime.now():
+                    delta_years = 3
                     years_since_last_post[3].append(contributor)
                     # print(f"{contributor} has not posted anything publicly in the last 3 years.")
                 elif time_created + datetime.timedelta(days=366 * 2) < datetime.datetime.now():
+                    delta_years = 2
                     years_since_last_post[2].append(contributor)
                     # print(f"{contributor} has not posted anything publicly in the last 2 years.")
                 elif time_created + datetime.timedelta(days=366 * 1) < datetime.datetime.now():
+                    delta_years = 1
                     years_since_last_post[1].append(contributor)
                     # print(f"{contributor} has not posted anything publicly in the last year.")
                 else:
+                    delta_years = 0
                     years_since_last_post[0].append(contributor)
+                with self.lock:
+                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV), 'a') as csv_file:
+                        csv_file.write(f"{contributor.name},{delta_years}\n")
         # TODO: if I make enough threads, I can just
-        with self.lock:
-            with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
-                for contributor in contributors:
-                    f.write(f"{contributor}\n")
-        with self.lock:
-            with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
-                for shadowban in shadowbanneds:
-                    f.write(f"{shadowban}\n")
-        with self.lock:
-            with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
-                for unverified in unverifieds:
-                    f.write(f"{unverified}\n")
-        with self.lock:
-            with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
-                for unsubscribed in unsubscribeds:
-                    f.write(f"{unsubscribed}\n")
-        with self.lock:
-            with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV)) as csv_file:
-                writer = csv.writer(csv_file)
-                for key in years_since_last_post.keys():
-                    for val in years_since_last_post[key]:
-                        # Print in like USERNAME, RECENCY format
-                        # Nope jk, I want to be able to read this back I think
-                        writer.writerow([key, val])
+        # with self.lock:
+        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
+        #         for contributor in contributors:
+        #             f.write(f"{contributor}\n")
+        # with self.lock:
+        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
+        #         for shadowban in shadowbanneds:
+        #             f.write(f"{shadowban}\n")
+        # with self.lock:
+        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
+        #         for unverified in unverifieds:
+        #             f.write(f"{unverified}\n")
+        # with self.lock:
+        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
+        #         for unsubscribed in unsubscribeds:
+        #             f.write(f"{unsubscribed}\n")
+        # with self.lock:
+        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV), 'a') as csv_file:
+        #         writer = csv.writer(csv_file)
+        #         for key in years_since_last_post.keys():
+        #             for val in years_since_last_post[key]:
+        #                 # Print in like USERNAME, RECENCY format
+        #                 # Nope jk, I want to be able to read this back I think
+        #                 writer.writerow([key, val])
 
     def run_threads(self, num_threads=12):
         threads = []
