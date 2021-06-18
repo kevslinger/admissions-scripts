@@ -7,6 +7,7 @@ import os
 import threading
 import matplotlib.pyplot as plt
 from utils import reddit_utils
+from tqdm import tqdm
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
@@ -35,7 +36,7 @@ class SubredditAnalyzer:
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV)):
             os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV))
 
-    def get_random_facts(self) -> list:
+    def get_random_facts(self) -> str:
         """Get some random statistics for fun"""
         sub_time_created = reddit_utils.convert_reddit_timestamp(self.subreddit.created_utc)
         sub_description = self.subreddit.public_description
@@ -71,40 +72,48 @@ class SubredditAnalyzer:
             4: [],
             5: [],
         }
-        checkpoint_time = time.time()
+        #checkpoint_time = time.time()
 
-        for contributor in self.subreddit.contributor(limit=end_idx):
+        for contributor in tqdm(self.subreddit.contributor(limit=end_idx), total=end_idx):
             if num_contributors <= start_idx - 1:
                 num_contributors += 1
                 continue
-            print(f"{num_contributors}: {contributor}")
+            #print(f"{num_contributors}: {contributor}")
             num_contributors += 1
-            if not num_contributors % 10:
-                print(f"[ {datetime.datetime.now().strftime('%B %d, %H:%M:%S')} ] Checkpoint: {num_contributors - start_idx} "
-                      f"contributors processed in {time.time() - checkpoint_time} seconds.")
-                checkpoint_time = time.time()
+            #if not num_contributors % 10:
+            #    print(f"[ {datetime.datetime.now().strftime('%B %d, %H:%M:%S')} ] Checkpoint: {num_contributors - start_idx} "
+            #          f"contributors processed in {time.time() - checkpoint_time} seconds.")
+            #    checkpoint_time = time.time()
             contributors.append(contributor.name)
             with self.lock:
                 with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
                     f.write(f"{contributor.name}\n")
-            # TODO: We don't do anything with unverifieds or unsubscribeds anymore
             try:
                 if contributor.verified is False:
                     num_unverified += 1
                     unverifieds.append(contributor.name)
+                    with self.lock:
+                        with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
+                            f.write(f"{contributor.name}\n")
                 if contributor.has_subscribed is False:
                     num_unsubscribed += 1
                     unsubscribeds.append(contributor.name)
+                    with self.lock:
+                        with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
+                            f.write(f"{contributor.name}\n")
             except AttributeError:
-                #print(f"{contributor.name} has been suspended or shadowbanned")
                 num_suspended_or_banned += 1
                 shadowbanneds.append(contributor.name)
                 with self.lock:
                     with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
                         f.write(f"{contributor.name}")
+
+                with self.lock:
+                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
+                        f.write(f"{contributor.name}")
                 continue
             except prawcore.exceptions.NotFound:
-                print(f"Is {contributor} suspended? {contributor.is_suspended}. They have definitely been banned or some shit")
+                print(f"Is {contributor} suspended? {contributor.is_suspended}. They have been banned or some shit")
                 num_suspended_or_banned += 1
                 shadowbanneds.append(contributor.name)
                 continue
