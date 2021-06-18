@@ -1,9 +1,8 @@
 from selenium import webdriver
 
 import constants
-import google_utils
+from utils import google_utils, redditmetis_utils
 import gspread
-import get_redditmetis_stats
 import time
 import os
 import string
@@ -99,7 +98,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         # Wait 5 seconds for the page to load TODO: different time?
         time.sleep(5)
         # Pulls in all the info we need about the reddit user
-        results = get_redditmetis_stats.get_stats(driver)
+        results = redditmetis_utils.get_stats(driver)
         # This fails mechanism will on average let us speed up how long it takes for each person
         # If the page hasn't finished loading, we wait 10 seconds, then 15 seconds, then 30 seconds.
         # If the page still hasn't loaded by then (50 total seconds), we'll assume there was some error
@@ -108,7 +107,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         comment_karma = -1
         while not results and fails > 0:
             print(f"Failed! {fails} fails remaining")
-            results = get_redditmetis_stats.get_stats(driver)
+            results = redditmetis_utils.get_stats(driver)
             time.sleep(30 / fails)
             fails -= 1
             # Reddit hits you with a "429: Too many messages" error seemingly often.
@@ -150,6 +149,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         #data_tab.append_row(row, value_input_option='USER_ENTERED')
         data_tab.update(f'A{data_tab_row_idx}:{end_col}{data_tab_row_idx}', [row], raw=False)
         data_tab_row_idx += 1
+
 
 if __name__ == '__main__':
     main()
