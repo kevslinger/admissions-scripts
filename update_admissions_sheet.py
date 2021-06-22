@@ -7,6 +7,7 @@ import time
 import os
 import string
 import requests
+import praw
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -33,19 +34,19 @@ def main():
     # Call the function to look through each of the new rows on the sheet
     start_col = "G"
     end_col = "X"
-    update_sheet(driver, admissions_tab, python_tab, start_col, end_col)
+    reddit_client = reddit_utils.create_reddit_client()
+    update_sheet(driver, reddit_client, admissions_tab, python_tab, start_col, end_col)
 
 
-def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspread.Worksheet, start_col: str, end_col: str) -> None:
+def update_sheet(driver: webdriver, reddit_client: praw.Reddit, form_tab: gspread.Worksheet, data_tab: gspread.Worksheet, start_col: str, end_col: str) -> None:
     """
     :param driver: Chrome webdriver from Selenium, used to pull up redditmetis info
+    :param reddit_client: The praw client (used if redditmetis does not work)
     :param form_tab: The google sheets tab connected to the admissions form
     :param data_tab: The google sheets tab we'll put the values in
     :param start_col: The first column to store values in
     :param end_col: The last column to store values in
     """
-    # Only needed if redditmetis is down
-    reddit_client = None
     is_redditmetis_down = False
     # STEP 1: FIND THE ROW TO START AT
     # STEP 2: START PROCESSING FROM THAT ROW ONWARDS
@@ -98,6 +99,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         # Get the URL to open up with chrome
         user_url = f"{constants.REDDITMETIS_URL}{username}"
         comment_karma = -1
+        results = []
         if not is_redditmetis_down:
             try:
                 driver.get(user_url)
@@ -132,11 +134,9 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
             # Redditmetis is down, need to do my own praw analysis
             except TimeoutException:
                 is_redditmetis_down = True
-                # Only need to instantiate this once
-                reddit_client = reddit_utils.create_reddit_client()
 
         # If redditmetis goes down, we'll do our own praw analysis
-        if is_redditmetis_down:
+        if is_redditmetis_down or not results:
             results = praw_utils.get_user_statistics(reddit_client, username)
 
         # Could not get results after waiting for so long. Assume user causes an error on redditmetis
