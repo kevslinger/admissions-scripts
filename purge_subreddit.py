@@ -84,10 +84,6 @@ class SubredditAnalyzer:
             #    print(f"[ {datetime.datetime.now().strftime('%B %d, %H:%M:%S')} ] Checkpoint: {num_contributors - start_idx} "
             #          f"contributors processed in {time.time() - checkpoint_time} seconds.")
             #    checkpoint_time = time.time()
-            contributors.append(contributor.name)
-            with self.lock:
-                with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
-                    f.write(f"{contributor.name}\n")
             try:
                 if contributor.verified is False:
                     num_unverified += 1
@@ -95,22 +91,20 @@ class SubredditAnalyzer:
                     with self.lock:
                         with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
                             f.write(f"{contributor.name}\n")
+                    continue
                 if contributor.has_subscribed is False:
                     num_unsubscribed += 1
                     unsubscribeds.append(contributor.name)
                     with self.lock:
                         with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
                             f.write(f"{contributor.name}\n")
+                    continue
             except AttributeError:
                 num_suspended_or_banned += 1
                 shadowbanneds.append(contributor.name)
                 with self.lock:
                     with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
-                        f.write(f"{contributor.name}")
-
-                with self.lock:
-                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
-                        f.write(f"{contributor.name}")
+                        f.write(f"{contributor.name}\n")
                 continue
             except prawcore.exceptions.NotFound:
                 print(f"Is {contributor} suspended? {contributor.is_suspended}. They have been banned or some shit")
@@ -145,31 +139,11 @@ class SubredditAnalyzer:
                 with self.lock:
                     with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV), 'a') as csv_file:
                         csv_file.write(f"{contributor.name},{delta_years}\n")
-        # TODO: if I make enough threads, I can just
-        # with self.lock:
-        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
-        #         for contributor in contributors:
-        #             f.write(f"{contributor}\n")
-        # with self.lock:
-        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
-        #         for shadowban in shadowbanneds:
-        #             f.write(f"{shadowban}\n")
-        # with self.lock:
-        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
-        #         for unverified in unverifieds:
-        #             f.write(f"{unverified}\n")
-        # with self.lock:
-        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
-        #         for unsubscribed in unsubscribeds:
-        #             f.write(f"{unsubscribed}\n")
-        # with self.lock:
-        #     with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV), 'a') as csv_file:
-        #         writer = csv.writer(csv_file)
-        #         for key in years_since_last_post.keys():
-        #             for val in years_since_last_post[key]:
-        #                 # Print in like USERNAME, RECENCY format
-        #                 # Nope jk, I want to be able to read this back I think
-        #                 writer.writerow([key, val])
+            contributors.append(contributor.name)
+            with self.lock:
+                with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
+                    f.write(f"{contributor.name}\n")
+
 
     def run_threads(self, num_threads=12):
         threads = []
@@ -182,7 +156,7 @@ class SubredditAnalyzer:
 if __name__ == '__main__':
     analyzer = SubredditAnalyzer()
     print(analyzer.get_random_facts())
-    analyzer.run_threads(num_threads=12)
+    #analyzer.run_threads(num_threads=12)
 
 # print(f"According to praw, I count {num_contributors} members of {sub_name}.")
 # print(f"The list of contributors has {len(contributors)} entries in it.")
