@@ -26,15 +26,15 @@ class SubredditAnalyzer:
         self.lock = threading.Lock()
         # TODO: Ideally, I think I would increment a version or something.
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE)):
-            os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE))
+            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE))
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED)):
-            os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED))
+            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED))
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED)):
-            os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED))
+            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED))
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED)):
-            os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED))
+            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED))
         if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV)):
-            os.rm(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV))
+            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV))
 
     def get_random_facts(self) -> str:
         """Get some random statistics for fun"""
@@ -181,7 +181,7 @@ class SubredditAnalyzer:
 
 if __name__ == '__main__':
     analyzer = SubredditAnalyzer()
-    print(analyzer.get_random_facts())
+    #print(analyzer.get_random_facts())
     analyzer.run_threads(num_threads=12)
 
 # print(f"According to praw, I count {num_contributors} members of {sub_name}.")

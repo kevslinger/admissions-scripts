@@ -98,6 +98,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
         # Get the URL to open up with chrome
         user_url = f"{constants.REDDITMETIS_URL}{username}"
         comment_karma = -1
+        results = []
         if not is_redditmetis_down:
             try:
                 driver.get(user_url)
@@ -136,7 +137,7 @@ def update_sheet(driver: webdriver, form_tab: gspread.Worksheet, data_tab: gspre
                 reddit_client = reddit_utils.create_reddit_client()
 
         # If redditmetis goes down, we'll do our own praw analysis
-        if is_redditmetis_down:
+        if is_redditmetis_down or not results:
             results = praw_utils.get_user_statistics(reddit_client, username)
 
         # Could not get results after waiting for so long. Assume user causes an error on redditmetis
