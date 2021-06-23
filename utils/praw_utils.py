@@ -58,8 +58,8 @@ def get_user_statistics(reddit: praw.Reddit, username: str):
             f'=HYPERLINK("https://www.reddit.com{most_downvoted_comment.permalink}", "{most_downvoted_comment.body}")' if most_downvoted_comment is not None else 'N/A',
             most_downvoted_comment.subreddit.name if most_downvoted_comment is not None else 'N/A',
             most_downvoted_comment.score if most_downvoted_comment is not None else 'N/A',
-            f'=HYPERLINK("https://www.reddit.com{most_downvoted_submission.permalink}", "{most_downvoted_submission.body}")' if most_downvoted_submission is not None else 'N/A',
-            most_downvoted_submission.subreddit.name if most_downvoted_submission is not None else 'N/A',
+            f'=HYPERLINK("https://www.reddit.com{most_downvoted_submission.permalink}", "{most_downvoted_submission.selftext}")' if most_downvoted_submission is not None else 'N/A',
+            most_downvoted_submission.subreddit.display_name if most_downvoted_submission is not None else 'N/A',
             most_downvoted_submission.score if most_downvoted_submission is not None else 'N/A',
             '?' # TODO: Word Cloud
             ]
