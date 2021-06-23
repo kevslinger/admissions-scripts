@@ -15,13 +15,13 @@ def create_gspread_client() -> gspread.Client:
     scopes = ['https://www.googleapis.com/auth/spreadsheets']
 
     # Write the credentials file if we don't have it
-    if not os.path.exists('client_secret.json'):
+    if os.path.exists('client_secret.json'):
+        creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scopes)
+    else:
         json_creds = dict()
         for param in JSON_PARAMS:
             json_creds[param] = os.getenv(param).replace('\"', '').replace('\\n', '\n')
-        #with open('../client_secret.json', 'w') as f:
-        #    json.dump(json_creds, f)
-    creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scopes)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(json_creds, scopes)
     return gspread.authorize(creds)
 
 
