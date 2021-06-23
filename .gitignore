@@ -4,3 +4,4 @@ client_secret.json
 .env
 .idea
 __pycache__/
+output_files/
