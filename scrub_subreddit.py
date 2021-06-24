@@ -49,13 +49,19 @@ class SubredditScrubber:
         """
         is_redditmetis_down = False
         # Loop through users in the sub
-        ravenclaw_sub = self.reddit_client.subreddit("ravenclaw")
+        with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, "processed_users.txt"), 'r') as f:
+            processed_users = [line.replace('\n', '') for line in f.readlines()]
         num_contributors = 0
         #for contributor in tqdm(ravenclaw_sub.contributor(limit=end_idx), total=end_idx):
         for username in tqdm(self.lines):
             # skip header
             if num_contributors <= start_idx - 1:
                 num_contributors += 1
+                continue
+            if num_contributors >= end_idx:
+                break
+            # Skip names we've already done
+            if username in processed_users:
                 continue
             num_contributors += 1
             contributor = self.reddit_client.redditor(username)
@@ -118,8 +124,8 @@ class SubredditScrubber:
                 with self.file_lock:
                     with open(os.path.join(os.getcwd(), "output_files", "redditmetis_errors.txt"), "a") as f:
                         f.write(f"{contributor.name}\n")
-                continue
-                #results = praw_utils.get_user_statistics(self.reddit_client, contributor.name)
+                #continue
+                results = praw_utils.get_user_statistics(self.reddit_client, contributor.name)
 
             # Could not get results after waiting for so long. Assume user causes an error on redditmetis
             # TODO: Maybe we should wait even longer? Just slows down the code though.

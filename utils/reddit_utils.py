@@ -1,7 +1,8 @@
 import praw
 import os
 from datetime import datetime
-
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
 def create_reddit_client() -> praw.Reddit:
     """Initialize AsyncPraw reddit api"""
