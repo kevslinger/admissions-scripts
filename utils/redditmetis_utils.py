@@ -58,7 +58,7 @@ def get_stats(driver):
         stats.append(f"{most_downvoted_post_karma}")
         # Frequently Used Words:
         wordcloud = driver.find_element_by_xpath('/html/body/div[1]/div/div[2]/div/div/div[2]/div[6]/div/div[2]/div[2]/div/div[3]/div/table').text.split('\n')
-        stats.append(f"{','.join([word for word in wordcloud[2:] if word.isalpha()])}")
+        stats.append(f"{', '.join([word for word in wordcloud[2:] if word.isalpha()])}")
         return stats
     except NoSuchElementException:
         return None
