@@ -16,7 +16,6 @@ def get_user_statistics(reddit: praw.Reddit, username: str):
     reddit_user = reddit.redditor(username)
     comment_karma = reddit_user.comment_karma
 
-
     for post in reddit_user.new(limit=1000):
         post_is_submission = False
         post_is_comment = False
@@ -29,14 +28,11 @@ def get_user_statistics(reddit: praw.Reddit, username: str):
         else:
             print("Uhhh I've never seen this type of post before. I will skip.")
             continue
-        # TODO: is score the same as karma or is it only upvotes?
-        # If it's upvotes only I guess we can use score with upvote_ratio to figure out the score
-        # Score of 10 and 40% upvote would be like -5 right
         if post.subreddit.name not in subreddits:
             subreddits[post.subreddit.display_name] = 1
         else:
             subreddits[post.subreddit.display_name] += 1
-
+        # TODO: is score the same as karma or is it only upvotes?
         if post_is_submission:
             if most_downvoted_submission is None:
                 most_downvoted_submission = post
@@ -51,11 +47,11 @@ def get_user_statistics(reddit: praw.Reddit, username: str):
                 if post.score < most_downvoted_comment.score:
                     most_downvoted_comment = post
 
-    top_10_subreddits = [f"r/{k}" for k, _ in sorted(subreddits.items(), key=lambda x: x[1], reverse=True)][:10]
+    top_10_subreddits = ", ".join([f"r/{k}" for k, _ in sorted(subreddits.items(), key=lambda x: x[1], reverse=True)][:10])
 
     return [comment_karma, num_comments, round(comment_karma / num_comments) if num_comments > 0 else 0,
             '?', # Wholesomeness
-            ','.join(top_10_subreddits) if top_10_subreddits else '?',
+            top_10_subreddits if top_10_subreddits else '?',
             '?', '?', '?', # Least wholesome Comment/Subreddit/Karma
             f'=HYPERLINK("https://www.reddit.com{most_downvoted_comment.permalink}", "{most_downvoted_comment.body}")' if most_downvoted_comment is not None else 'N/A',
             f"r/{most_downvoted_comment.subreddit.display_name}" if most_downvoted_comment is not None else 'N/A',
