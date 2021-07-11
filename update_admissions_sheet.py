@@ -26,7 +26,7 @@ def main():
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
-    chrome_options.binary_location = constants.GOOGLE_CHROME_PATH
+    #chrome_options.binary_location = constants.GOOGLE_CHROME_PATH
     # Get the Chrome Driver
     driver = webdriver.Chrome(executable_path=constants.CHROMEDRIVER_PATH,
                               options=chrome_options)
