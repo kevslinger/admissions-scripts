@@ -24,16 +24,15 @@ class SubredditScrubber:
         # Open the Google Sheet
         sheet = gspread_client.open_by_key(SHEET_KEY)
         # Get the specific spreadsheet tab
-        self.flagged_tab = sheet.worksheet("Flagged")
-        self.unflagged_tab = sheet.worksheet("Unflagged")
         self.backfill_tab = sheet.worksheet("Backfill")
         self.suspended_tab = sheet.worksheet("Suspended")
+        self.redditmetis_error_tab = sheet.worksheet("redditmetis_errors")
 
         self.main_lock = threading.Lock()
         self.suspended_lock = threading.Lock()
         self.file_lock = threading.Lock()
 
-        contributor_file = open(os.path.join(os.getcwd(), "output_files", "ravenclaw_contributors.txt"), "r")
+        contributor_file = open(os.path.join(os.getcwd(), "output_files", "redditmetis_errors.txt"), "r")
         self.lines = [line.replace('\n', '') for line in contributor_file.readlines()]
 
         # Call the function to look through each of the new rows on the sheet
@@ -72,6 +71,7 @@ class SubredditScrubber:
             except AttributeError:
                 with self.suspended_lock:
                     self.suspended_tab.append_row([f"{contributor.name}"])
+                print(f"{contributor.name} has been suspended")
                 continue
             except prawcore.exceptions.NotFound:
                 print(f"Is {contributor} suspended? They have been banned or some shit")
@@ -83,7 +83,8 @@ class SubredditScrubber:
             comment_karma = -1
             results = []
             row = [contributor.name]
-            if not is_redditmetis_down:
+            if False:
+            #if not is_redditmetis_down:
                 try:
                     driver.get(user_url)
 
@@ -121,10 +122,9 @@ class SubredditScrubber:
             # If redditmetis goes down, we'll do our own praw analysis
             if is_redditmetis_down or not results:
                 # TODO: For now, don't do praw stuff. too slow, we can backfill later offline
-                with self.file_lock:
-                    with open(os.path.join(os.getcwd(), "output_files", "redditmetis_errors.txt"), "a") as f:
-                        f.write(f"{contributor.name}\n")
-                #continue
+                #with self.file_lock:
+                #    with open(os.path.join(os.getcwd(), "output_files", "redditmetis_errors.txt"), "a") as f:
+                #        f.write(f"{contributor.name}\n")
                 results = praw_utils.get_user_statistics(self.reddit_client, contributor.name)
 
             # Could not get results after waiting for so long. Assume user causes an error on redditmetis
@@ -165,7 +165,8 @@ class SubredditScrubber:
             #         with self.lock:
             #             self.unflagged_tab.append_row(row, value_input_option='USER_ENTERED')
             with self.main_lock:
-                self.backfill_tab.append_row(row, value_input_option='USER_ENTERED')
+                #self.backfill_tab.append_row(row, value_input_option='USER_ENTERED')
+                self.redditmetis_error_tab.append_row(row, value_input_option='USER_ENTERED')
             # Update the appropriate row with the info
             # Need to do idx + 1 because google sheets are 1-indexed while python is 0-indexed
             # raw=False allows us to do =HYPERLINK which we used for Most Downvoted, etc.
@@ -173,6 +174,9 @@ class SubredditScrubber:
             # data_tab.append_row(row, value_input_option='USER_ENTERED')
             #data_tab.update(f'A{data_tab_row_idx}:{end_col}{data_tab_row_idx}', [row], raw=False)
             #data_tab_row_idx += 1
+            with self.file_lock:
+                with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, "processed_users.txt"), 'a') as f:
+                    f.write(f"{contributor.name}\n")
 
     def run_threads(self, num_threads=12):
         threads = []
@@ -191,4 +195,5 @@ class SubredditScrubber:
 
 if __name__ == '__main__':
     scrubber = SubredditScrubber()
-    scrubber.run_threads(num_threads=11)
+    #scrubber.run_threads(num_threads=11)
+    scrubber.update_sheet(None, 0, 10_000)
