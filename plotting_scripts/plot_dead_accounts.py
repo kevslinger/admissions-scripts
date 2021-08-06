@@ -35,7 +35,7 @@ ax.set_xticks(range(6))
 ax.set_xticklabels(["0", "1", "2", "3", "4", "5+"])
 ax.set_ylabel("Users")
 ax.set_title("Last (public) comment/post among users in r/ravenclaw")
-plt.savefig(os.path.join(os.getcwd(), "output_files/most_recent_post_bars.png"))
+plt.savefig(os.path.join(os.getcwd(), "../output_files/most_recent_post_bars.png"))
 
 
 for key in recency_dict:
