@@ -1,22 +1,21 @@
-import praw
 import prawcore
 import datetime
-import time
-import csv
 import os
+import constants
 import threading
-import matplotlib.pyplot as plt
+import sys
+sys.path.append('.')
 from utils import reddit_utils
 from tqdm import tqdm
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
-OUTPUT_DIR = "output_files"
-MAIN_TEXT_FILE = "ravenclaw_contributors.txt"
-SHADOWBANNED = "ravenclaw_shadowbanned.txt"
-UNVERIFIED = "unverified.txt"
-UNSUBSCRIBED = "unsubscribed.txt"
-RECENCY_CSV = "ravenclaw_recency.csv"
+
+"""OH so this is the script where all the magic happens. I'm not even convinced multi-threading was helpful
+    here since reddit imposes a pretty strict rate-limit of 60 users/minute I think. But anyways, the point
+    of this script is to get the most recent public post of each user in your subreddit, get the date of it, and then store
+    (username, years since most recent post) in a csv.
+    It takes a while"""
 
 
 class SubredditAnalyzer:
@@ -25,16 +24,16 @@ class SubredditAnalyzer:
         self.subreddit = self.reddit_client.subreddit(sub_name)
         self.lock = threading.Lock()
         # TODO: Ideally, I think I would increment a version or something.
-        if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE)):
-            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE))
-        if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED)):
-            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED))
-        if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED)):
-            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED))
-        if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED)):
-            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED))
-        if os.path.exists(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV)):
-            os.remove(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV))
+        if os.path.exists(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.MAIN_TEXT_FILE)):
+            os.remove(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.MAIN_TEXT_FILE))
+        if os.path.exists(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.SHADOWBANNED)):
+            os.remove(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.SHADOWBANNED))
+        if os.path.exists(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNVERIFIED)):
+            os.remove(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNVERIFIED))
+        if os.path.exists(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNSUBSCRIBED)):
+            os.remove(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNSUBSCRIBED))
+        if os.path.exists(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.RECENCY_CSV)):
+            os.remove(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.RECENCY_CSV))
 
     def get_random_facts(self) -> str:
         """Get some random statistics for fun"""
@@ -72,38 +71,32 @@ class SubredditAnalyzer:
             4: [],
             5: [],
         }
-        #checkpoint_time = time.time()
 
         for contributor in tqdm(self.subreddit.contributor(limit=end_idx), total=end_idx):
             if num_contributors <= start_idx - 1:
                 num_contributors += 1
                 continue
-            #print(f"{num_contributors}: {contributor}")
             num_contributors += 1
-            #if not num_contributors % 10:
-            #    print(f"[ {datetime.datetime.now().strftime('%B %d, %H:%M:%S')} ] Checkpoint: {num_contributors - start_idx} "
-            #          f"contributors processed in {time.time() - checkpoint_time} seconds.")
-            #    checkpoint_time = time.time()
             try:
                 if contributor.verified is False:
                     num_unverified += 1
                     unverifieds.append(contributor.name)
                     with self.lock:
-                        with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNVERIFIED), "a") as f:
+                        with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNVERIFIED), "a") as f:
                             f.write(f"{contributor.name}\n")
                     continue
                 if contributor.has_subscribed is False:
                     num_unsubscribed += 1
                     unsubscribeds.append(contributor.name)
                     with self.lock:
-                        with open(os.path.join(os.getcwd(), OUTPUT_DIR, UNSUBSCRIBED), "a") as f:
+                        with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.UNSUBSCRIBED), "a") as f:
                             f.write(f"{contributor.name}\n")
                     continue
             except AttributeError:
                 num_suspended_or_banned += 1
                 shadowbanneds.append(contributor.name)
                 with self.lock:
-                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, SHADOWBANNED), "a") as f:
+                    with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.SHADOWBANNED), "a") as f:
                         f.write(f"{contributor.name}\n")
                 continue
             except prawcore.exceptions.NotFound:
@@ -137,11 +130,11 @@ class SubredditAnalyzer:
                     delta_years = 0
                     years_since_last_post[0].append(contributor)
                 with self.lock:
-                    with open(os.path.join(os.getcwd(), OUTPUT_DIR, RECENCY_CSV), 'a') as csv_file:
+                    with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.RECENCY_CSV), 'a') as csv_file:
                         csv_file.write(f"{contributor.name},{delta_years}\n")
             contributors.append(contributor.name)
             with self.lock:
-                with open(os.path.join(os.getcwd(), OUTPUT_DIR, MAIN_TEXT_FILE), "a") as f:
+                with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.MAIN_TEXT_FILE), "a") as f:
                     f.write(f"{contributor.name}\n")
 
 
@@ -156,17 +149,3 @@ class SubredditAnalyzer:
 if __name__ == '__main__':
     analyzer = SubredditAnalyzer()
     analyzer.run_threads(num_threads=12)
-
-# print(f"According to praw, I count {num_contributors} members of {sub_name}.")
-# print(f"The list of contributors has {len(contributors)} entries in it.")
-# print(f"We can remove duplicates, which gives us {len(list(set(contributors)))} users.")
-# print(f"The number of unverified subscribers is {num_unverified}")
-# print(f"The number of unsubscribed users is {num_unsubscribed}")
-# print(f"The number of suspended, banned, or shadowbanned users is {num_suspended_or_banned}")
-#
-# fig, ax = plt.subplots()
-# ax.bar(range(len(years_since_last_post), years_since_last_post.values()))
-# ax.set_xlabel("Years")
-# ax.set_ylabel("Users")
-# ax.set_title("Last (public) post recency among users in r/ravenclaw")
-# plt.savefig(os.path.join(os.getcwd(), "most_recent_post_bars.png"))

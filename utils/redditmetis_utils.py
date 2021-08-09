@@ -1,8 +1,18 @@
 from selenium.common.exceptions import NoSuchElementException
 import re
+from typing import Union
+from selenium import webdriver
 
 
-def get_stats(driver):
+def get_stats(driver: webdriver) -> Union[list, None]:
+    """A very glasscannon, hacky way of ripping all the info off of redditmetis.
+    BUT IT WORKS
+    Sometimes redditmetis takes a long time to load a user's profile, in which case we return none and
+    the script will run again
+    Arguments:
+        driver: selenium Chrome Webdriver, which has opened the redditmetis page
+    Return:
+        stats: list of profile information, or none if the page has not loaded"""
     stats = []
     try:
         # Comment Karma
@@ -62,5 +72,3 @@ def get_stats(driver):
         return stats
     except NoSuchElementException:
         return None
-
-

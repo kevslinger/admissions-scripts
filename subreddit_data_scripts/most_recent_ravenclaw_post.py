@@ -1,3 +1,5 @@
+import sys
+sys.path.append('.')
 from utils import reddit_utils
 from dotenv import load_dotenv
 from tqdm import tqdm
@@ -7,6 +9,10 @@ import datetime
 import prawcore
 import threading
 load_dotenv(override=True)
+
+""""This script requires the output of most_recent_post.py. It takes all the redditors from your subreddit that have
+    Made a public comment/post in the last 1 year, and then finds their most recent comment/post in your sub.
+"""
 
 
 class TowerRecencyGetter:
@@ -65,7 +71,7 @@ class TowerRecencyGetter:
                             delta_years = 0
                             recency_dict[0].append(username)
                         with self.lock:
-                            with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, "tower_recency2.csv"), 'a') as csv_file:
+                            with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.TOWER_RECENCY_CSV), 'a') as csv_file:
                                 csv_file.write(f"{username},{delta_years}\n")
                             write_flag = True
                         break
@@ -74,7 +80,7 @@ class TowerRecencyGetter:
                 continue
 
             if not write_flag:
-                with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, "tower_recency2.csv"), 'a') as csv_file:
+                with open(os.path.join(os.getcwd(), constants.OUTPUT_DIR, constants.TOWER_RECENCY_CSV), 'a') as csv_file:
                     csv_file.write(f"{username},-1\n")
 
     def run_threads(self, num_threads=10):

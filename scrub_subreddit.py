@@ -14,6 +14,12 @@ import threading
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
+"""PLEASE DO NOT LOOK AT THIS
+    honestly I'm just not even gonna try to comment it or explain it
+    But I backfilled every user in the tower with a redditmetis analysis
+    Which took like 12 hours I think.
+"""
+
 
 class SubredditScrubber:
     def __init__(self):
@@ -83,8 +89,7 @@ class SubredditScrubber:
             comment_karma = -1
             results = []
             row = [contributor.name]
-            if False:
-            #if not is_redditmetis_down:
+            if not is_redditmetis_down:
                 try:
                     driver.get(user_url)
 
