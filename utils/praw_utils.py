@@ -82,7 +82,7 @@ def get_user_statistics(reddit: praw.Reddit, username: str):
                 '?' # TODO: Word Cloud
                 ]
     # Usually this happens when someone typos their username
-    except prawcore.exceptions.NotFound:
+    except (prawcore.exceptions.NotFound, AttributeError):
         return ["is", "this", "user",
                 "banned",
                 "because",
